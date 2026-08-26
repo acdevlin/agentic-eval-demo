@@ -2,17 +2,39 @@
 
 Note that we do *not* need to use the EventCapturingRuntime class for this test suite!
 """
+import pytest
+
 from conductor.ai.agents.testing import (
     MockEvent,
-    validate_strategy,
+    assert_handoff_to,
     expect,
     mock_run,
+    validate_strategy,
 )
 
 from agents import support_agent, _PROMPT_REFUND
 
 class TestSupportAgent:
     """Confirm this agent hands off to sub-agents as expected."""
+    
+    def test_only_one_specialist_runs(self):
+        """Support agent should only pick a single specialist for handoff."""
+        result = mock_run(
+            support_agent,
+            "What is the maximum flight speed velocity of an unladen swallow?",
+            events=[
+                MockEvent.handoff("technical"),
+                MockEvent.done("What do you mean - African, or European swallow?")
+            ],
+            # Intentionally don't need to mock tool call results in this case.
+        )
+
+        result.print_result()
+        
+        assert_handoff_to(result, "technical")
+        # Expect this to be thrown since support should have only handed off to 'technical' agent.
+        with pytest.raises(AssertionError):
+            assert_handoff_to(result, "billing")
 
     def test_successful_order_lookup(self):
         """Basic test case that uses 1 tool through the billing agent."""
@@ -87,6 +109,7 @@ class TestSupportAgent:
         )
         
         result.print_result()
+
         (expect(result)
             .completed()
             .agent_ran("technical")
