@@ -1,9 +1,10 @@
+""" Tests that use a mocked runtime to confirm Agent correctness.
+
+Note that we do *not* need to use the EventCapturingRuntime class for this test suite!
+"""
 from conductor.ai.agents.testing import (
     MockEvent,
-    assert_handoff_to,
-    assert_output_contains,
-    assert_tool_call_order,
-    assert_tool_not_used,
+    validate_strategy,
     expect,
     mock_run,
 )
@@ -11,7 +12,7 @@ from conductor.ai.agents.testing import (
 from agents import support_agent, _PROMPT_REFUND
 
 class TestSupportAgent:
-    """Test that this agent hands off to sub-agents correctly and chains tools calls."""
+    """Confirm this agent hands off to sub-agents as expected."""
 
     def test_successful_refund_request(self):
         result = mock_run(
@@ -29,9 +30,15 @@ class TestSupportAgent:
             ],
             auto_execute_tools=True,
         )
+
         result.print_result()
-        expect(result).completed().no_errors()
-        assert_handoff_to(result, "billing")
-        assert_tool_call_order(result, ["lookup_order", "process_refund"])
-        assert_tool_not_used(result, "search_web")
-        assert_output_contains(result, "refund", case_sensitive=False)
+
+        (expect(result)
+            .completed()
+            .agent_ran("billing")
+            .tool_call_order(["lookup_order", "process_refund"])
+            .did_not_use_tool("search_web")
+            .output_contains("refund")
+            .no_errors())
+        # Confirms that our agent did use Strategy.HANDOFF during mocked execution
+        validate_strategy(support_agent, result)
