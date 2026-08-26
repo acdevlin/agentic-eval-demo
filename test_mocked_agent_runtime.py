@@ -1,8 +1,9 @@
-""" Tests that use a mocked runtime to confirm Agent correctness.
+"""Tests that use a mocked runtime to confirm Agent correctness.
 
 This is used primarily to assert on routing and tool selection without incurring a token cost.
 Note that we do *not* need to use the EventCapturingRuntime class here since the runtime is mocked.
 """
+
 import pytest
 
 from conductor.ai.agents.testing import (
@@ -15,9 +16,10 @@ from conductor.ai.agents.testing import (
 
 from agents import support_agent, _PROMPT_REFUND
 
+
 class TestSupportAgent:
     """Confirms this agent hands off to sub-agents as expected."""
-    
+
     def test_only_one_specialist_runs(self):
         """Support agent should only pick a single specialist for handoff."""
         result = mock_run(
@@ -25,13 +27,13 @@ class TestSupportAgent:
             "What is the maximum flight speed velocity of an unladen swallow?",
             events=[
                 MockEvent.handoff("technical"),
-                MockEvent.done("What do you mean - African, or European swallow?")
+                MockEvent.done("What do you mean - African, or European swallow?"),
             ],
             # Intentionally don't need to mock tool call results in this case.
         )
 
         result.print_result()
-        
+
         assert_handoff_to(result, "technical")
         # Expect this to be thrown since support should have only handed off to 'technical' agent.
         with pytest.raises(AssertionError):
@@ -46,22 +48,26 @@ class TestSupportAgent:
                 MockEvent.handoff("billing"),
                 MockEvent.tool_call("lookup_order", {"order_id": "123"}),
                 MockEvent.tool_result(
-                    "lookup_order", 
-                    result={"order_id": "123", "status": "pending"}),
-                MockEvent.done("Order #123 is currently 'pending' and has not shipped.")
+                    "lookup_order", result={"order_id": "123", "status": "pending"}
+                ),
+                MockEvent.done(
+                    "Order #123 is currently 'pending' and has not shipped."
+                ),
             ],
             auto_execute_tools=False,
         )
-        
+
         result.print_result()
-        
-        (expect(result)
+
+        (
+            expect(result)
             .completed()
             .used_tool("lookup_order")
             .did_not_use_tool("process_refund")
             .output_contains("pending")
             .output_contains("123")
-            .no_errors())
+            .no_errors()
+        )
         # Confirms that our agent did use Strategy.HANDOFF during mocked execution
         validate_strategy(support_agent, result)
 
@@ -74,44 +80,53 @@ class TestSupportAgent:
                 MockEvent.handoff("billing"),
                 MockEvent.tool_call("lookup_order", {"order_id": "123"}),
                 MockEvent.tool_result(
-                    "lookup_order", 
-                    result={"order_id": "123", "status": "shipped"}),
-                MockEvent.tool_call("process_refund", args={"order_id": "123", "amount": 49.99}),
-                MockEvent.tool_result("process_refund", result="Refund of $49.99 processed"),
-                MockEvent.done("Your refund request for order #123 has been processed."),
+                    "lookup_order", result={"order_id": "123", "status": "shipped"}
+                ),
+                MockEvent.tool_call(
+                    "process_refund", args={"order_id": "123", "amount": 49.99}
+                ),
+                MockEvent.tool_result(
+                    "process_refund", result="Refund of $49.99 processed"
+                ),
+                MockEvent.done(
+                    "Your refund request for order #123 has been processed."
+                ),
             ],
             auto_execute_tools=False,
         )
 
         result.print_result()
 
-        (expect(result)
+        (
+            expect(result)
             .completed()
             .agent_ran("billing")
             .tool_call_order(["lookup_order", "process_refund"])
             .did_not_use_tool("search_web")
             .output_contains("refund")
-            .no_errors())
+            .no_errors()
+        )
         # Confirms that our agent did use Strategy.HANDOFF during mocked execution
         validate_strategy(support_agent, result)
-        
+
     def test_successful_calculation(self):
         """Basic use case with handoff to technical agent."""
         result = mock_run(
             support_agent,
             "What is 5 times 3?",
-            events = [
+            events=[
                 MockEvent.handoff("technical"),
                 MockEvent.tool_call("calculate", {"expression": "5 * 3"}),
-                MockEvent.tool_result("calculate", result={"result":"15"}),
+                MockEvent.tool_result("calculate", result={"result": "15"}),
                 MockEvent.done("5 times 3 is 15"),
             ],
-            auto_execute_tools=False
+            auto_execute_tools=False,
         )
-        
+
         result.print_result()
 
-        (expect(result)
+        (
+            expect(result)
             .completed()
             .agent_ran("technical")
             .used_tool("calculate")

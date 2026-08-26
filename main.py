@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """"""
+
 from conductor.ai.agents import AgentRuntime
 from conductor.client.configuration.configuration import Configuration
-from conductor.client.configuration.settings.authentication_settings import AuthenticationSettings
+from conductor.client.configuration.settings.authentication_settings import (
+    AuthenticationSettings,
+)
 import os
 import argparse
 
@@ -25,13 +28,13 @@ def main():
         "--mock-eval",
         action="store_true",
         default=False,
-        help="Evaluates routing and tool behavior without an LLM call."
+        help="Evaluates routing and tool behavior without an LLM call.",
     )
     parser.add_argument(
         "--live-eval",
         action="store_true",
         default=False,
-        help="Evaluates behavior against the live LLM."
+        help="Evaluates behavior against the live LLM.",
     )
     args = parser.parse_args()
 
@@ -39,8 +42,8 @@ def main():
         server_api_url=os.environ["CONDUCTOR_SERVER_URL"],
         authentication_settings=AuthenticationSettings(
             key_id=os.environ["CONDUCTOR_AUTH_KEY"],
-            key_secret=os.environ["CONDUCTOR_AUTH_SECRET"]
-        )
+            key_secret=os.environ["CONDUCTOR_AUTH_SECRET"],
+        ),
     )
 
     with AgentRuntime(configuration=config) as runtime:
@@ -49,9 +52,11 @@ def main():
         print("Performing live agent run.")
         result = runtime.run(agent=support_agent, prompt=_PROMPT_REFUND)
         result.print_result()
-        print("Full run in the Orkes Conductor UI: "
-            f"https://developer.orkescloud.com/agentExecutions/{result.execution_id}")
+        print(
+            "Full run in the Orkes Conductor UI: "
+            f"https://developer.orkescloud.com/agentExecutions/{result.execution_id}"
+        )
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
