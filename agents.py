@@ -5,8 +5,9 @@ from conductor.ai.agents import Agent, Strategy, tool
 # https://developer.orkescloud.com/integrations?view=connections-and-resources 
 _AI_MODEL = "OpenAi_Key/gpt-5-nano"
 
-# Shared prompt used for testing
+# Shared prompts used for testing
 _PROMPT_REFUND = "I need a refund for order 123."
+
 
 @tool
 def search_web(query: str) -> str:

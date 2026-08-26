@@ -15,7 +15,7 @@ from conductor.ai.agents.testing import (
 from agents import support_agent, _PROMPT_REFUND
 
 class TestSupportAgent:
-    """Confirm this agent hands off to sub-agents as expected."""
+    """Confirms this agent hands off to sub-agents as expected."""
     
     def test_only_one_specialist_runs(self):
         """Support agent should only pick a single specialist for handoff."""
