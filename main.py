@@ -3,23 +3,20 @@ from conductor.ai.agents import AgentRuntime
 from conductor.ai.agents.testing import (
     CorrectnessEval,
     EvalCase,
-    MockEvent,
-    assert_handoff_to,
-    assert_output_contains,
-    assert_tool_call_order,
-    assert_tool_not_used,
-    expect,
-    mock_run,
 )
 from conductor.client.configuration.configuration import Configuration
 from conductor.client.configuration.settings.authentication_settings import AuthenticationSettings
 import os
 import argparse
 
-from agents import support_agent, billing_agent, technical_agent
 from event_capturing_runtime import EventCapturingRuntime
+from agents import (
+    support_agent,
+    billing_agent,
+    technical_agent,
+    _PROMPT_REFUND,
+)
 
-_PROMPT = "I need a refund for order 123."
 
 def main():
     """
@@ -50,62 +47,38 @@ def main():
         )
     )
 
-    if args.mock_eval:
-        print("Peforming a mocked run of agent behavior.")
-        mock_result = mock_run(
-            support_agent,
-            _PROMPT,
-            events=[
-                MockEvent.handoff("billing"),
-                MockEvent.tool_call("lookup_order", {"order_id": "123"}),
-                MockEvent.tool_result(
-                    "lookup_order", 
-                    result={"order_id": "123", "status": "shipped"}),
-                MockEvent.tool_call("process_refund", args={"order_id": "123", "amount": 49.99}),
-                MockEvent.tool_result("process_refund", result="Refund of $49.99 processed"),
-                MockEvent.done("Your refund request for order #123 is has been processed."),
-            ],
-            auto_execute_tools=True,
-        )
-        mock_result.print_result()
-        expect(mock_result).completed().no_errors()
-        assert_handoff_to(mock_result, "billing")
-        assert_tool_call_order(mock_result, ["lookup_order", "process_refund"])
-        assert_tool_not_used(mock_result, "search_web")
-        assert_output_contains(mock_result, "refund", case_sensitive=False)
-    else:
-        with AgentRuntime(configuration=config) as runtime:
-            # Always deploy updated agents when using a real runtime
-            runtime.deploy(support_agent, billing_agent, technical_agent)
-            if args.live_eval:
-                print("Evaluating correctness of agent behavior against live LLM.")
-                billing_eval = EvalCase(
-                    name="refund_request_routes_to_billing",
-                    agent=support_agent,
-                    prompt=_PROMPT,
-                    expect_handoff_to="billing",
-                    expect_tools=["lookup_order"],
-                    expect_tools_not_used=["search_web"],
-                    expect_output_contains=["refund"],
+    with AgentRuntime(configuration=config) as runtime:
+        # Always deploy updated agents when using a real runtime
+        runtime.deploy(support_agent, billing_agent, technical_agent)
+        if args.live_eval:
+            print("Evaluating correctness of agent behavior against live LLM.")
+            billing_eval = EvalCase(
+                name="refund_request_routes_to_billing",
+                agent=support_agent,
+                prompt=_PROMPT_REFUND,
+                expect_handoff_to="billing",
+                expect_tools=["lookup_order"],
+                expect_tools_not_used=["search_web"],
+                expect_output_contains=["refund"],
+            )
+            eval = CorrectnessEval(EventCapturingRuntime(runtime))
+            eval_result = eval.run([
+                billing_eval
+            ])
+            eval_result.print_summary()
+            assert eval_result.all_passed, (
+                f"{eval_result.fail_count}/{eval_result.total} eval(s) failed:\n"
+                + "\n".join(
+                    f"  - {c.name}: {[ch.message for ch in c.checks if not ch.passed]}"
+                    for c in eval_result.failed_cases()
                 )
-                eval = CorrectnessEval(EventCapturingRuntime(runtime))
-                eval_result = eval.run([
-                    billing_eval
-                ])
-                eval_result.print_summary()
-                assert eval_result.all_passed, (
-                    f"{eval_result.fail_count}/{eval_result.total} eval(s) failed:\n"
-                    + "\n".join(
-                        f"  - {c.name}: {[ch.message for ch in c.checks if not ch.passed]}"
-                        for c in eval_result.failed_cases()
-                    )
-                )
-            else:
-                print("Performing live agent run.")
-                result = runtime.run(agent=support_agent, prompt=_PROMPT)
-                result.print_result()
-                print("Full run in the Orkes Conductor UI: "
-                      f"https://developer.orkescloud.com/agentExecutions/{result.execution_id}")
+            )
+        else:
+            print("Performing live agent run.")
+            result = runtime.run(agent=support_agent, prompt=_PROMPT_REFUND)
+            result.print_result()
+            print("Full run in the Orkes Conductor UI: "
+                    f"https://developer.orkescloud.com/agentExecutions/{result.execution_id}")
 
 
 if __name__=="__main__":
