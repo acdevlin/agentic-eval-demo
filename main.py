@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from conductor.ai.agents import AgentRuntime
 from conductor.ai.agents.testing import (
     CorrectnessEval,
@@ -22,7 +23,7 @@ _PROMPT = "I need a refund for order 123."
 
 def main():
     """
-    The runtime is NOT mocked - all LLM calls are actually evaluated.
+    Demonstrates an execution handoff between 3 agents.
     """
     parser = argparse.ArgumentParser(
         description="Showcases a sample of handing off execution between 3 agents."
