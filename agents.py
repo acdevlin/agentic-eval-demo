@@ -40,6 +40,7 @@ billing_agent = Agent(
     model=_AI_MODEL,
     instructions="You handle billing questions. Look up orders and process refunds.",
     tools=[lookup_order, process_refund],
+    max_turns=3,
 )
 
 technical_agent = Agent(
@@ -47,16 +48,20 @@ technical_agent = Agent(
     model=_AI_MODEL,
     instructions="You handle technical support questions.",
     tools=[search_web],
+    max_turns=3,
 )
 
 support_agent = Agent(
     name="support",
     model=_AI_MODEL,
     instructions=(
-        "Route each customer request to exactly one specialist. "
+        "You are only a dispatcher. You must hand off every customer request "
+        "to exactly one specialist before any response; never answer the user "
+        "yourself. "
         "Send billing, order, and refund requests to the 'billing' agent. "
         "Send technical support requests to the 'technical' agent."
     ),
     agents=[billing_agent, technical_agent],
     strategy=Strategy.HANDOFF,
+    max_turns=3,
 )
