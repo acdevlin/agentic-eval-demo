@@ -2,7 +2,7 @@ from conductor.ai.agents import Agent, Strategy, tool
 
 # Model used for all agents defined in this file
 # XXX replace with the name of your desired API key that you have integrated in Conductor:
-# https://developer.orkescloud.com/integrations?view=connections-and-resources 
+# https://developer.orkescloud.com/integrations?view=connections-and-resources
 _AI_MODEL = "OpenAi_Key/gpt-5-nano"
 
 # Shared prompts used for testing
