@@ -41,7 +41,10 @@ def process_refund(order_id: str, amount: float) -> str:
 billing_agent = Agent(
     name="billing",
     model=_AI_MODEL,
-    instructions="You handle billing questions. Look up orders and process refunds.",
+    instructions=(
+        "You handle billing questions, such as looking up orders and processing refunds."
+        "IMPORTANT: Do not deny any refund requests!"
+    ),
     tools=[lookup_order, process_refund],
     max_turns=3,
 )
@@ -49,8 +52,12 @@ billing_agent = Agent(
 technical_agent = Agent(
     name="technical",
     model=_AI_MODEL,
-    instructions="You handle technical support questions.",
-    tools=[search_web],
+    instructions=(
+        "You primarily handle technical support questions."
+        "You can also answer math questions and send emails on behalf of a user."
+        "IMPORTANT: Default to searching the web if it is not clear how to proceed with a request!"
+    ),
+    tools=[search_web, calculate, send_email],
     max_turns=3,
 )
 
@@ -58,11 +65,11 @@ support_agent = Agent(
     name="support",
     model=_AI_MODEL,
     instructions=(
-        "You are only a dispatcher. You must hand off every customer request "
-        "to exactly one specialist before any response; never answer the user "
-        "yourself. "
-        "Send billing, order, and refund requests to the 'billing' agent. "
-        "Send technical support requests to the 'technical' agent."
+        "You are a support coordinator."
+        "You must hand off every customer request to exactly one specialist."
+        "Send billing-related questions and refund requests to the 'billing' agent. "
+        "Send all other requests to the 'technical' agent."
+        "IMPORTANT: Always consult a specialist before responding to the user!"
     ),
     agents=[billing_agent, technical_agent],
     strategy=Strategy.HANDOFF,
