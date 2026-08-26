@@ -15,6 +15,7 @@ class TestSupportAgent:
     """Confirm this agent hands off to sub-agents as expected."""
 
     def test_successful_order_lookup(self):
+        """Basic test case that uses 1 tool through the billing agent."""
         result = mock_run(
             support_agent,
             "What is the status of order 123?",
@@ -42,6 +43,7 @@ class TestSupportAgent:
         validate_strategy(support_agent, result)
 
     def test_successful_refund_request(self):
+        """Compound test case with 2 tool uses through the billing agent."""
         result = mock_run(
             support_agent,
             _PROMPT_REFUND,
@@ -67,5 +69,31 @@ class TestSupportAgent:
             .did_not_use_tool("search_web")
             .output_contains("refund")
             .no_errors())
+        # Confirms that our agent did use Strategy.HANDOFF during mocked execution
+        validate_strategy(support_agent, result)
+        
+    def test_successful_calculation(self):
+        """Basic use case with handoff to technical agent."""
+        result = mock_run(
+            support_agent,
+            "What is 5 times 3?",
+            events = [
+                MockEvent.handoff("technical"),
+                MockEvent.tool_call("calculate", {"expression": "5 * 3"}),
+                MockEvent.tool_result("calculate", result={"result":"15"}),
+                MockEvent.done("5 times 3 is 15"),
+            ],
+            auto_execute_tools=False
+        )
+        
+        result.print_result()
+        (expect(result)
+            .completed()
+            .agent_ran("technical")
+            .used_tool("calculate")
+            .did_not_use_tool("search_web")
+            .output_contains("15")
+            .no_errors()
+        )
         # Confirms that our agent did use Strategy.HANDOFF during mocked execution
         validate_strategy(support_agent, result)
