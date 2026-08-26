@@ -11,13 +11,13 @@ _PROMPT_REFUND = "I need a refund for order 123."
 
 @tool
 def search_web(query: str) -> str:
-    """Search the web for information."""
+    """Searches the web for information."""
     return f"Results for: {query}"
 
 
 @tool
 def calculate(expression: str) -> str:
-    """Evaluate a math expression."""
+    """Evaluates a math expression."""
     return str(eval(expression))  # noqa: S307
 
 
@@ -29,13 +29,13 @@ def send_email(to: str, subject: str, body: str) -> str:
 
 @tool
 def lookup_order(order_id: str) -> dict:
-    """Look up an order by ID."""
+    """Looks up an order by ID."""
     return {"order_id": order_id, "status": "shipped", "total": 49.99}
 
 
 @tool
 def process_refund(order_id: str, amount: float) -> str:
-    """Process a refund for an order."""
+    """Processes a refund for the specified order."""
     return f"Refund of ${amount} processed for order {order_id}"
 
 
