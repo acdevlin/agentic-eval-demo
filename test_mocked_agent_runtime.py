@@ -1,6 +1,7 @@
 """ Tests that use a mocked runtime to confirm Agent correctness.
 
-Note that we do *not* need to use the EventCapturingRuntime class for this test suite!
+This is used primarily to assert on routing and tool selection without incurring a token cost.
+Note that we do *not* need to use the EventCapturingRuntime class here since the runtime is mocked.
 """
 import pytest
 
