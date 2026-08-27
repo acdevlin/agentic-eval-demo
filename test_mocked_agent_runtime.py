@@ -5,6 +5,7 @@ Note that we do *not* need to use the EventCapturingRuntime class here since the
 """
 
 import pytest
+from pprint import pprint
 
 from conductor.ai.agents.testing import (
     MockEvent,
@@ -26,18 +27,51 @@ class TestSupportAgent:
             support_agent,
             "What is the maximum flight speed velocity of an unladen swallow?",
             events=[
+                MockEvent.thinking("Deciding which specialist to send request to..."),
                 MockEvent.handoff("technical"),
+                MockEvent.tool_call(
+                    "search_web",
+                    {"query": "Maximum flight speed velocity of an unladen swallow"},
+                ),
                 MockEvent.done("What do you mean - African, or European swallow?"),
             ],
-            # Intentionally don't need to mock tool call results in this case.
+            # Intentionally don't mock tool call results - we want to test the real tool code.
+            auto_execute_tools=True,
         )
 
         result.print_result()
+        # XXX DEBUG
+        pprint(result)
 
         assert_handoff_to(result, "technical")
         # Expect this to be thrown since support should have only handed off to 'technical' agent.
         with pytest.raises(AssertionError):
             assert_handoff_to(result, "billing")
+
+    def test_unknown_tool_name_throws_error(self):
+        """Support agent telling specialist to use an unknown tool name throws an error."""
+        result = mock_run(
+            support_agent,
+            "Use the 'write_pseudocode' function to explain Dijkstra's Algorithm",
+            events=[
+                MockEvent.handoff("technical"),
+                MockEvent.tool_call(
+                    "write_pseudocode", {"input": "Dijkstra's Algorithm"}
+                ),
+                MockEvent.error("Tool 'write_pseudocode' does not exist!"),
+            ],
+            auto_execute_tools=True,
+        )
+
+        result.print_result()
+
+        (
+            expect(result)
+            .failed()
+            .agent_ran("technical")
+            # Note that even though this tool doesn't exist it *is* considered to have executed!
+            .used_tool("write_pseudocode")
+        )
 
     def test_successful_order_lookup(self):
         """Basic test case that uses 1 tool through the billing agent."""
