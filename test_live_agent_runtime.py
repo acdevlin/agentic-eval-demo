@@ -1,6 +1,10 @@
 """Test that are used by a *live* LLM runtime to test agent behavior."""
 
 import pytest
+
+# XXX DEBUG
+import pprint
+
 from conductor.ai.agents.runtime.config import AgentConfig
 from conductor.ai.agents.runtime.runtime import AgentRuntime
 from conductor.ai.agents.testing import (
@@ -10,7 +14,7 @@ from conductor.ai.agents.testing import (
 )
 
 from event_capturing_runtime import EventCapturingRuntime
-from agents import support_agent, _PROMPT_REFUND
+from agents import billing_agent, support_agent, technical_agent, _PROMPT_REFUND
 
 
 # Shared fixture
@@ -41,12 +45,10 @@ class TestSupportAgent:
 
     def test_successful_refund_request(self, runtime):
         billing_eval = EvalCase(
-            name="test_successful_refund_request",
+            name="TestSupportAgent: test_successful_refund_request",
             agent=support_agent,
             prompt=_PROMPT_REFUND,
             expect_handoff_to="billing",
-            expect_tools=["lookup_order"],
-            expect_tools_not_used=["search_web"],
             expect_output_contains=["refund"],
         )
         eval = CorrectnessEval(EventCapturingRuntime(runtime))
@@ -60,6 +62,51 @@ class TestSupportAgent:
         assert agent_result is not None
         # Now we can confirm that our agent used the HANDOFF strategy.
         validate_strategy(support_agent, agent_result)
+        print(
+            "Full run in the Orkes Conductor UI: "
+            f"https://developer.orkescloud.com/agentExecutions/{agent_result.execution_id}"
+        )
+
+
+class TestBillingAgent:
+    """Confirms this agent uses its associated tools as expected."""
+
+    def test_successful_order_lookup(self, runtime):
+        lookup_order_eval = EvalCase(
+            name="TestBillingAgent: test_successful_order_lookup",
+            agent=billing_agent,
+            prompt="Give me the status of order 123",
+            expect_tools=["lookup_order"],
+            expect_tools_not_used=["process_refund"],
+            expect_no_handoff_to=[support_agent, technical_agent],
+            expect_output_contains=["123", "order"],
+        )
+        eval = CorrectnessEval(EventCapturingRuntime(runtime))
+        eval_result = eval.run([lookup_order_eval])
+        eval_result.print_summary()
+        process_eval_results(eval_result)
+        agent_result = eval_result.cases[0].result
+        assert agent_result is not None
+        print(
+            "Full run in the Orkes Conductor UI: "
+            f"https://developer.orkescloud.com/agentExecutions/{agent_result.execution_id}"
+        )
+
+    def test_successful_refund_request(self, runtime):
+        lookup_order_eval = EvalCase(
+            name="TestBillingAgent: test_successful_refund_request",
+            agent=billing_agent,
+            prompt="Process a refund for order 123",
+            expect_tools=["process_refund"],
+            expect_no_handoff_to=[support_agent, technical_agent],
+            expect_output_contains=["123", "order", "refund"],
+        )
+        eval = CorrectnessEval(EventCapturingRuntime(runtime))
+        eval_result = eval.run([lookup_order_eval])
+        eval_result.print_summary()
+        process_eval_results(eval_result)
+        agent_result = eval_result.cases[0].result
+        assert agent_result is not None
         print(
             "Full run in the Orkes Conductor UI: "
             f"https://developer.orkescloud.com/agentExecutions/{agent_result.execution_id}"

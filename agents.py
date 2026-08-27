@@ -44,6 +44,8 @@ billing_agent = Agent(
     model=_AI_MODEL,
     instructions=(
         "You handle billing questions, such as looking up orders and processing refunds."
+        "Use the lookup_order tool when asked about an order's status or details. "
+        "Use th process_refund tool to process refunds when a user requests you to do so. "
         "IMPORTANT: Do not deny any refund requests!"
     ),
     tools=[lookup_order, process_refund],
