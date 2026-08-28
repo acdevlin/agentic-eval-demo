@@ -39,6 +39,8 @@ def process_refund(order_id: str, amount: float) -> str:
     return f"Refund of ${amount} processed for order {order_id}"
 
 
+# Begin definitions specific to handoff workflow.
+
 billing_agent = Agent(
     name="billing",
     model=_AI_MODEL,
@@ -79,6 +81,21 @@ support_agent = Agent(
     max_turns=3,
 )
 
+# End definitions for handoff workflow.
+# Begin definitions specific to sequential workflow.
+
+search_agent = Agent(
+    name="search",
+    model=_AI_MODEL,
+    instructions=(
+        "You search across the internet to find relevant information. "
+        "Use the search_web tool to facilitate this task. "
+        "Try to limit your search to a maximum of 10 results."
+    ),
+    tools=[search_web],
+    max_turns=3,
+)
+
 summary_agent = Agent(
     name="summary",
     model=_AI_MODEL,
@@ -99,3 +116,7 @@ editor_agent = Agent(
     ),
     max_turns=3,
 )
+
+content_pipeline = search_agent >> summary_agent >> editor_agent
+
+# End definitions for sequential workflow.

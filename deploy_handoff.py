@@ -7,7 +7,6 @@ from conductor.client.configuration.settings.authentication_settings import (
     AuthenticationSettings,
 )
 import os
-import argparse
 
 from agents import (
     support_agent,
@@ -21,22 +20,6 @@ def main():
     """
     Demonstrates an execution handoff between 3 agents.
     """
-    parser = argparse.ArgumentParser(
-        description="Showcases a sample of handing off execution between 3 agents."
-    )
-    parser.add_argument(
-        "--mock-eval",
-        action="store_true",
-        default=False,
-        help="Evaluates routing and tool behavior without an LLM call.",
-    )
-    parser.add_argument(
-        "--live-eval",
-        action="store_true",
-        default=False,
-        help="Evaluates behavior against the live LLM.",
-    )
-    args = parser.parse_args()
 
     config = Configuration(
         server_api_url=os.environ["CONDUCTOR_SERVER_URL"],

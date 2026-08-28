@@ -21,10 +21,7 @@ from conductor.ai.agents.testing import (
 
 from agents import (
     support_agent,
-    summary_agent,
-    editor_agent,
-    billing_agent,
-    technical_agent,
+    content_pipeline,
     _PROMPT_REFUND,
 )
 
@@ -186,15 +183,14 @@ class TestSupportAgent:
 
 
 class TestSequentialPipeline:
-    content_pipeline = technical_agent >> summary_agent >> editor_agent
 
     def test_agent_order(self):
         """Verifies that the agents run in the specified order."""
         result = mock_run(
-            self.content_pipeline,
+            content_pipeline,
             "Search for articles about AI safety, then write a summary about their contents.",
             events=[
-                MockEvent.handoff("technical"),
+                MockEvent.handoff("search"),
                 MockEvent.tool_call("search_web", args={"query": "AI safety"}),
                 MockEvent.tool_result(
                     "search_web", result="AI safety research focuses on..."
@@ -209,7 +205,7 @@ class TestSequentialPipeline:
         result.print_result()
 
         # Confirm that specified agents ran
-        assert_agent_ran(result, "technical")
+        assert_agent_ran(result, "search")
         assert_agent_ran(result, "summary")
         assert_agent_ran(result, "editor")
         # Confirm that specified tools were used
@@ -219,11 +215,11 @@ class TestSequentialPipeline:
     def test_skipped_agent_throws_error(self):
         """Confirms that if an agent is skipped, an error is thrown."""
         result = mock_run(
-            self.content_pipeline,
+            content_pipeline,
             "Write about agentic AI",
             events=[
-                MockEvent.handoff("technical"),
-                # "summary" handoff is intentionally missing to trigger violations
+                MockEvent.handoff("search"),
+                # Handoff to "summary" agent is intentionally missing!
                 MockEvent.handoff("editor"),
                 MockEvent.done("Incomplete article"),
             ],
@@ -232,7 +228,7 @@ class TestSequentialPipeline:
         result.print_result()
 
         # These two agents DID run
-        assert_agent_ran(result, "technical")
+        assert_agent_ran(result, "search")
         assert_agent_ran(result, "editor")
 
         # This agent DID NOT run
@@ -241,4 +237,4 @@ class TestSequentialPipeline:
 
         # Verify that the "summary" agent was skipped and caused a Strategy error
         with pytest.raises(StrategyViolation, match="skipped"):
-            validate_strategy(self.content_pipeline, result)
+            validate_strategy(content_pipeline, result)
