@@ -89,8 +89,7 @@ search_agent = Agent(
     model=_AI_MODEL,
     instructions=(
         "You search across the internet to find relevant information. "
-        "Use the search_web tool to facilitate this task. "
-        "Try to limit your search to a maximum of 10 results."
+        "Limit your search to a maximum of 10 results."
     ),
     tools=[search_web],
     max_turns=3,

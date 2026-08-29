@@ -211,6 +211,8 @@ class TestSequentialPipeline:
         # Confirm that specified tools were used
         assert_tool_used(result, "search_web")
         assert_tool_called_with(result, "search_web", args={"query": "AI safety"})
+        # Confirm that the Sequential strategy was adhered to
+        validate_strategy(content_pipeline, result)
 
     def test_skipped_agent_throws_error(self):
         """Confirms that if an agent is skipped, an error is thrown."""
